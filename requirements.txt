@@ -1,0 +1,14 @@
+python-dotenv
+requests
+langchain
+langchain_core
+langchain_community
+ollama
+pydantic
+fastapi
+uvicorn
+langchain-ollama
+pymongo
+apscheduler
+ipykernel
+crewai
