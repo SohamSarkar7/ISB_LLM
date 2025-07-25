@@ -8,8 +8,12 @@ from fastapi.responses import StreamingResponse
 from pymongo import MongoClient
 from routes.mongo_class import GroupedMongoChatHistory
 from routes.schedular import start_scheduler
+from fastapi.responses import JSONResponse
 import json
-
+import os
+import shutil
+from fastapi import FastAPI, UploadFile, File
+from routes.rag import process_pdf_and_store_in_pinecone
 # Start daily memory flush
 start_scheduler()
 
@@ -17,12 +21,27 @@ router = APIRouter()
 mongo_uri = "mongodb://localhost:27017"
 client = MongoClient(mongo_uri)
 
+UPLOAD_FOLDER = "uploaded_files"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 @router.get("/")
 def health_check():
-    """
-    Health check endpoint to verify if the API is running.
-    """
-    return {"status": "ok", "message": "LLM Response API is running."}
+    return {"status": "ok", "message": "Upload API is live."}
+
+@router.post("/upload_pdf")
+async def upload_pdf(file: UploadFile = File(...)):
+    file_location = os.path.join(UPLOAD_FOLDER, file.filename)
+
+    # Save uploaded file locally
+    try:
+        with open(file_location, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"status": "error", "message": f"File save failed: {str(e)}"})
+
+    # Call processing function
+    result = process_pdf_and_store_in_pinecone(file_location)
+    return JSONResponse(content=result)
 
 @router.post("/llm_response")
 async def get_llm_response(user_input: str, session_id: str = Header(...)):

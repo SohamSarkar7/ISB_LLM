@@ -12,3 +12,11 @@ pymongo
 apscheduler
 ipykernel
 crewai
+pypdf
+arxiv
+pymupdf
+langchain_huggingface
+sentence-transformers
+langchain_pinecone
+pinecone
+python-multipart

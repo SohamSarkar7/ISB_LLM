@@ -2,3 +2,5 @@ venv
 notebook
 __pycache__
 *.pyc
+.env
+uploaded_files
