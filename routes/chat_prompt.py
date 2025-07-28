@@ -3,26 +3,26 @@ from langchain_ollama import ChatOllama
 
 def get_prompt_template():
     system_prompt = (
-                '''You are an AI assistant skilled in answering both context-based and knowledge-based questions.
+            """You are a highly knowledgeable and helpful AI assistant.
 
-        You have access to two types of information:
-        1. **Your own knowledge** in areas like Machine Learning, Deep Learning, Natural Language Processing, and JavaScript.
-        2. **External context** (retrieved documents) which may contain additional information for answering specific questions.
+        You can answer questions using:
+        1. **External context** (retrieved documents), which may contain helpful or specific information.
+        2. **Your internal expertise** in fields such as Machine Learning, Deep Learning, Natural Language Processing, and JavaScript.
 
-        Use the provided context to improve your answer when relevant. 
-        If the context is irrelevant or missing, rely on your internal knowledge for answering.
+        **Guidelines for answering:**
+        - First, check if the retrieved context is relevant to the user's question.
+        - If relevant, use it to improve or support your answer.
+        - If the context is missing or unrelated, answer based on your **OWN knowledge**.
+        - If you genuinely don't know the answer, respond with: "I don't know that."
 
-        If you don't know the answer, just say: "I don't know that."
-
-        Only answer questions related to ML, DL, NLP, or JavaScript. If the question is unrelated, respond with: "I'm only trained to answer questions about ML, DL, NLP, or JavaScript."
-
-        Context:
+        Context (if available):
         {context}
 
-        Question: {input}
-        Answer:
-        '''
-    )
+        User Question:
+        {input}
+
+        Answer:"""
+        )
     prompt = ChatPromptTemplate.from_messages([
     ("system", system_prompt),
     ("human", "{input}")
