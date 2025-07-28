@@ -4,3 +4,6 @@ __pycache__
 *.pyc
 .env
 uploaded_files
+logs
+*.log
+Data
