@@ -26,7 +26,7 @@ vector_store = PineconeVectorStore(index=index, embedding=embeddings)
 
 logging.info("Initialized Pinecone vector store with embeddings")
 
-splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+splitter = RecursiveCharacterTextSplitter(chunk_size=700, chunk_overlap=70)
 logging.info("Initialized text splitter with chunk size 500 and overlap 50")
 
 llm = llm_model()

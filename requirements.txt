@@ -20,3 +20,9 @@ sentence-transformers
 langchain_pinecone
 pinecone
 python-multipart
+unstructured
+pytube
+markdown
+crewai_tools
+reportlab
+streamlit

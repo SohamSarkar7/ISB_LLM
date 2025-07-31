@@ -30,10 +30,15 @@ def get_prompt_template():
     return prompt
         
 
-def llm_model() -> ChatOllama:
-    return ChatOllama(
+def llm_model():
+    llm =  ChatOllama(
         model="gemma3:1b",
         temperature=0.1,
         max_tokens=1000,
         streaming=True,
     )
+    return llm
+
+
+
+    

@@ -4,11 +4,13 @@ from langchain_ollama.chat_models import ChatOllama
 from langchain.memory import ConversationBufferMemory
 from langchain_core.runnables import RunnableSequence
 from routes.chat_prompt import get_prompt_template, llm_model
+from routes.agent import youtube_to_PDF
 from fastapi.responses import StreamingResponse
 from pymongo import MongoClient
 from routes.mongo_class import GroupedMongoChatHistory
 from routes.schedular import start_scheduler
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from loggers import logging
 import json
 import os
@@ -18,12 +20,17 @@ from routes.rag import process_pdf_and_store_in_pinecone , Retrival_chain_rag
 # Start daily memory flush
 start_scheduler()
 
-router = APIRouter()
+router = APIRouter(
+    prefix="/api",      # Adds /api prefix to all routes
+    tags=["LLM Service"]  # Shows as section name in Swagger docs
+)
+
 mongo_uri = "mongodb://localhost:27017"
 client = MongoClient(mongo_uri)
 logging.info("Connected to MongoDB at %s", mongo_uri)
 
-UPLOAD_FOLDER = "uploaded_files"
+# Go up to ISB_LLM
+UPLOAD_FOLDER = os.path.join("uploaded_files", "PDF_documents")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
@@ -52,18 +59,96 @@ async def upload_pdf(file: UploadFile = File(...)):
     result = process_pdf_and_store_in_pinecone(file_location)
     return JSONResponse(content=result)
 
+class YouTubeLinkRequest(BaseModel):
+    url: str
 
+# Route
+@router.post("/youtube_link_embedding")
+async def youtube_video_link(request: YouTubeLinkRequest):
+    try:
+        pdf_path = youtube_to_PDF(request.url)
+        result = process_pdf_and_store_in_pinecone(pdf_path)
+        return JSONResponse(content=result)
+    except Exception as e:
+        logging.error(f"Error processing YouTube link: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+
+# @router.post("/llm_response")
+# async def get_llm_response(user_input: str, session_id: str = Header(...)):
+#     """
+#     Stream LLM response using LangChain, MongoDB memory, and FastAPI.
+#     """
+#     try:
+#         # 1. Setup MongoDB-backed memory
+#         history = GroupedMongoChatHistory(
+#             session_id=session_id,
+#             mongo_uri=mongo_uri,
+#             db_name="llm_sessions",
+#             collection_name="chat_history"
+#         )
+
+#         memory = ConversationBufferMemory(
+#             memory_key="history",
+#             return_messages=True,
+#             chat_memory=history
+#         )
+
+#         memory.chat_memory.add_user_message(user_input)
+
+#         # 2. Prompt + LLM
+#         chain = Retrival_chain_rag()
+
+
+        
+#         # async def stream_response():
+#         #     final_response = ""
+#         #     async for chunk in chain.astream({"input": user_input}):
+#         #         text = chunk.content
+#         #         final_response += text
+#         #         # Stream each chunk as a JSON line
+#         #         yield json.dumps({"response": text}) + "\n"
+
+            
+#         #     memory.chat_memory.add_ai_message(final_response)
+
+#         # # 5. Stream JSON output to client
+#         # return StreamingResponse(stream_response(), media_type="application/jsonlines")
+
+#         response = chain.invoke({"input": user_input})
+
+#         final_response = response["answer"] 
+#         context_response = response['context'][0].page_content
+#         logging.info("LLM response generated successfully")  
+#         memory.chat_memory.add_ai_message(final_response)
+#         return JSONResponse(content={"response": final_response, "context": context_response})
+    
+
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
+
+# class ChatRequest(BaseModel):
+#     user_input: str
+
+class LLMRequest(BaseModel):
+    user_input: str
 
 @router.post("/llm_response")
-async def get_llm_response(user_input: str, session_id: str = Header(...)):
+async def llm_response(
+    request: LLMRequest,
+    session_id: str = Header(..., alias="session-id")
+):
     """
     Stream LLM response using LangChain, MongoDB memory, and FastAPI.
     """
     try:
+        user_input = request.user_input
+
         # 1. Setup MongoDB-backed memory
         history = GroupedMongoChatHistory(
             session_id=session_id,
-            mongo_uri=mongo_uri,
+            mongo_uri=mongo_uri,  # Make sure this is defined in your module
             db_name="llm_sessions",
             collection_name="chat_history"
         )
@@ -76,33 +161,25 @@ async def get_llm_response(user_input: str, session_id: str = Header(...)):
 
         memory.chat_memory.add_user_message(user_input)
 
-        # 2. Prompt + LLM
-        chain = Retrival_chain_rag()
+        # 2. Setup retrieval chain
+        rag_chain = Retrival_chain_rag()
+        
 
+        def stream_response(chain: RunnableSequence,user_input: str):
+            final_response = ""
+            for chunk in chain.stream({"input": user_input}):
+                if "answer" in chunk:
+                    text = chunk["answer"]
+                    final_response += text
+                    # Stream each chunk as a JSON line
+                    yield json.dumps({"response": text}) + "\n"
 
         
-        # async def stream_response():
-        #     final_response = ""
-        #     async for chunk in chain.astream({"input": user_input}):
-        #         text = chunk.content
-        #         final_response += text
-        #         # Stream each chunk as a JSON line
-        #         yield json.dumps({"response": text}) + "\n"
 
-            
-        #     memory.chat_memory.add_ai_message(final_response)
-
-        # # 5. Stream JSON output to client
-        # return StreamingResponse(stream_response(), media_type="application/jsonlines")
-
-        response = chain.invoke({"input": user_input})
-
-        final_response = response["answer"] 
-        context_response = response['context'][0].page_content
-        logging.info("LLM response generated successfully")  
-        memory.chat_memory.add_ai_message(final_response)
-        return JSONResponse(content={"response": final_response, "context": context_response})
+            memory.chat_memory.add_ai_message(final_response)
+        return StreamingResponse(stream_response(chain=rag_chain,user_input=user_input), media_type="application/jsonlines")
+        
     
-
     except Exception as e:
+        logging.error(f"Error in get_llm_response: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
