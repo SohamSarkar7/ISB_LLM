@@ -15,11 +15,12 @@ if "pdf_uploaded" not in st.session_state:
     st.session_state["pdf_uploaded"] = False
 if "yt_embedded" not in st.session_state:
     st.session_state["yt_embedded"] = False
+if "chat_history" not in st.session_state:
+    st.session_state.chat_history = []
 
 # --- Login UI ---
 def login():
     st.title("🔐 Login")
-
     username = st.text_input("Enter a username to login")
     if st.button("Login"):
         if username:
@@ -58,90 +59,84 @@ def main_app():
             else:
                 st.sidebar.error(f"❌ YouTube processing failed: {res.text}")
 
-    # Chat UI
-    st.title("💬 Ask a Question")
-    user_input = st.text_input("Type your question", key="user_question")
+    # --- Chat UI ---
+    st.title("💬 Smart Chat")
 
-    if st.button("Ask"):
-        if user_input:
-            # Create containers for response and context
-            response_container = st.container()
-            context_container = st.container()
-            
-            with response_container:
-                st.markdown("### 🧠 Response:")
-                response_placeholder = st.empty()
-                
-            with context_container:
-                context_placeholder = st.empty()
-            
-            # Stream the response
+    # Display previous chat history
+    for sender, message in st.session_state.chat_history:
+        if sender == "user":
+            st.chat_message("user", avatar="🧑").markdown(message)
+        else:
+            st.chat_message("assistant", avatar="🤖").markdown(message)
+
+    # Chat input box
+    user_input = st.chat_input("Type your question")
+
+    if user_input:
+        # Save user message
+        st.session_state.chat_history.append(("user", user_input))
+
+        # Display assistant container
+        with st.chat_message("assistant", avatar="🤖"):
+            response_placeholder = st.empty()
+            context_placeholder = st.container()
+            response_placeholder.markdown("🤔 Thinking...")
+
             headers = {"session-id": st.session_state[session_id_key]}
-            
+
             try:
                 response_text = ""
                 context_text = ""
-                
+
                 with requests.post(
                     f"{API_BASE}/llm_response",
                     json={"user_input": user_input},
                     headers=headers,
                     stream=True,
-                    timeout=60  # Add timeout
+                    timeout=60
                 ) as res:
-                    
+
                     if res.status_code == 200:
                         for line in res.iter_lines(decode_unicode=True):
-                            if line.strip():  # Skip empty lines
+                            if line.strip():
                                 try:
                                     data = json.loads(line)
                                     data_type = data.get("type", "chunk")
-                                    
+
                                     if data_type == "context":
                                         context_text = data.get("context", "")
-                                        with context_container:
-                                            context_placeholder.info(f"📄 **Context:** {context_text}")
-                                    
+                                        context_placeholder.info(f"📄 **Context:** {context_text}")
+
                                     elif data_type == "chunk":
                                         text_chunk = data.get("response", "")
                                         response_text += text_chunk
-                                        
-                                        # Update the response in real-time
-                                        with response_container:
-                                            response_placeholder.markdown(response_text + "▌")  # Add cursor
-                                        
-                                        # Small delay for better visual effect
-                                        time.sleep(0.01)
-                                    
+                                        response_placeholder.markdown(response_text + "▌")
+
                                     elif data_type == "complete":
-                                        # Remove cursor when complete
-                                        with response_container:
-                                            response_placeholder.markdown(response_text)
+                                        response_placeholder.markdown(response_text)
                                         st.success("✅ Response completed!")
                                         break
-                                    
+
                                     elif data_type == "error":
-                                        error_msg = data.get("error", "Unknown error")
-                                        st.error(f"❌ Error: {error_msg}")
+                                        st.error(f"❌ Error: {data.get('error', 'Unknown error')}")
                                         break
-                                        
-                                except json.JSONDecodeError as e:
-                                    st.warning(f"⚠️ Received malformed JSON: {line}")
-                                    continue
+
+                                except json.JSONDecodeError:
+                                    st.warning(f"⚠️ Malformed JSON: {line}")
                                 except Exception as e:
-                                    st.error(f"⚠️ Error processing line: {str(e)}")
-                                    continue
+                                    st.error(f"⚠️ Error processing: {str(e)}")
                     else:
                         st.error(f"❌ Server Error ({res.status_code}): {res.text}")
-                        
+
+                # Save assistant response
+                st.session_state.chat_history.append(("assistant", response_text))
+
             except requests.exceptions.Timeout:
-                st.error("🕐 Request timed out. Please try again.")
+                st.error("🕐 Request timed out.")
             except requests.exceptions.ConnectionError:
-                st.error("🔌 Connection error. Please check if the API server is running.")
+                st.error("🔌 Connection error.")
             except Exception as e:
                 st.error(f"🚨 Unexpected error: {str(e)}")
-        else:
-            st.warning("⚠️ Please enter a question first.")
 
 # --- Run App ---
 if st.session_state[session_id_key] is None:
