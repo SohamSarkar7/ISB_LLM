@@ -5,7 +5,7 @@ from pinecone import Pinecone
 from langchain_pinecone import PineconeVectorStore
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
-from routes.chat_prompt import get_prompt_template, llm_model
+from routes.chat_prompt import get_prompt_template, llm_model , groq_llm, groq_prompt_template
 from langchain.schema import Document
 from dotenv import load_dotenv
 from loggers import logging
@@ -30,10 +30,7 @@ splitter = RecursiveCharacterTextSplitter(chunk_size=700, chunk_overlap=70)
 logging.info("Initialized text splitter with chunk size 500 and overlap 50")
 
 llm = llm_model()
-logging.info("Initialized LLM model: gemma3:1b")
-
-prompt = get_prompt_template()
-logging.info("Initialized prompt template for question-answering tasks")
+logging.info("Initialized LLM model: Gemma 3 27b")
 
 def process_pdf_and_store_in_pinecone(file_path: str):
     try:
@@ -69,17 +66,42 @@ def process_pdf_and_store_in_pinecone(file_path: str):
     except Exception as e:
         return {"status": "error", "message": str(e)}
     
-def Retrival_chain_rag():
+def Retrival_chain_rag(user_input):
     """
     Create a retrieval chain that uses the vector store to retrieve relevant documents.
     """
     retriever = vector_store.as_retriever(
     search_type="similarity",
-    search_kwargs={"k": 2,"score_threshold": 0.7}
+    search_kwargs={"k": 5,"score_threshold": 0.7}
+    )
+
+    relevant_docs = retriever.get_relevant_documents(user_input)
+    context = "\n\n".join([doc.page_content for doc in relevant_docs])
+    logging.info("Created retriever from Pinecone vector store")
+
+    prompt = get_prompt_template(context=context,user_input=user_input)
+    logging.info("getting the prompt template and retrive the context")
+
+    llm = llm_model()
+    logging.info("Initialized LLM model: Gemma 3 27b")
+
+    return prompt , llm
+    
+def groq_retrival_chain():
+    
+    retriever = vector_store.as_retriever(
+    search_type="similarity",
+    search_kwargs={"k": 3,"score_threshold": 0.7}
     )
     logging.info("Created retriever from Pinecone vector store")
 
-    combine_docs_chain = create_stuff_documents_chain(llm=llm, prompt=prompt)
+    llm = groq_llm()
+    logging.info("LLM Added")
+
+    prompt = groq_prompt_template()
+    logging.info("Prompt template is added")
+
+    combine_docs_chain = create_stuff_documents_chain(llm=llm,prompt=prompt)
     logging.info("Created document combination chain with LLM and prompt template")
 
     retrieval_chain = create_retrieval_chain(retriever, combine_docs_chain)
@@ -87,7 +109,4 @@ def Retrival_chain_rag():
 
     return retrieval_chain
 
-
-    # Create a chain that retrieves relevant documents
-    
 

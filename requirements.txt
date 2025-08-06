@@ -26,3 +26,5 @@ markdown
 crewai_tools
 reportlab
 streamlit
+langchain_huggingface
+langchain-groq

@@ -13,25 +13,46 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from loggers import logging
 import json
+from datetime import datetime
 import os
 import shutil
 from fastapi import FastAPI, UploadFile, File
-from routes.rag import process_pdf_and_store_in_pinecone , Retrival_chain_rag
+from routes.rag import process_pdf_and_store_in_pinecone , Retrival_chain_rag , groq_retrival_chain
+from dotenv import load_dotenv
+load_dotenv()
 # Start daily memory flush
 start_scheduler()
 
 router = APIRouter(
-    prefix="/api",      # Adds /api prefix to all routes
-    tags=["LLM Service"]  # Shows as section name in Swagger docs
+    prefix="/api",      
+    tags=["LLM Service"]  
 )
 
-mongo_uri = "mongodb://localhost:27017"
+mongo_uri = "mongodb+srv://sarkarsoham2002:1234@isbllm.ay4fqha.mongodb.net/?retryWrites=true&w=majority&appName=ISBLLM"
 client = MongoClient(mongo_uri)
 logging.info("Connected to MongoDB at %s", mongo_uri)
 
 # Go up to ISB_LLM
 UPLOAD_FOLDER = os.path.join("uploaded_files", "PDF_documents")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+
+MAX_DAILY_CALLS = 14400
+usage_collection = client["llm_sessions"]["usage_counter"]
+
+def get_llm_choice():
+    today = datetime.utcnow().strftime("%Y-%m-%d")
+    usage_doc = usage_collection.find_one({"date": today})
+    
+    if usage_doc:
+        if usage_doc["llm_calls"] >= MAX_DAILY_CALLS:
+            return "fallback"
+        else:
+            usage_collection.update_one({"date": today}, {"$inc": {"llm_calls": 1}})
+            return "primary"
+    else:
+        usage_collection.insert_one({"date": today, "llm_calls": 1})
+        return "primary"
 
 
 @router.get("/")
@@ -162,22 +183,35 @@ async def llm_response(
         memory.chat_memory.add_user_message(user_input)
 
         # 2. Setup retrieval chain
-        rag_chain = Retrival_chain_rag()
-        
+        llm_choice = get_llm_choice()
 
-        def stream_response(chain: RunnableSequence,user_input: str):
-            final_response = ""
-            for chunk in chain.stream({"input": user_input}):
-                if "answer" in chunk:
-                    text = chunk["answer"]
-                    final_response += text
+
+        if llm_choice == "fallback":
+            prompt, llm = Retrival_chain_rag(user_input=user_input)
+
+            def stream_response(prompt,llm):
+                final_response = ""
+                for chunk in llm.stream(prompt):
+                    chunk_text = chunk.content
+                    final_response += chunk_text
                     # Stream each chunk as a JSON line
-                    yield json.dumps({"response": text}) + "\n"
+                    yield json.dumps({"response": chunk_text}) + "\n"
+                memory.chat_memory.add_ai_message(final_response)
+            return StreamingResponse(stream_response(prompt=prompt,llm = llm), media_type="application/jsonlines")
+        else:
+            chain = groq_retrival_chain()
 
-        
+            def stream_response_groq(chain: RunnableSequence,user_input: str):
+                final_response = ""
+                for chunk in chain.stream({"input": user_input}):
+                    if "answer" in chunk:
+                        text = chunk["answer"]
+                        final_response += text
+                        # Stream each chunk as a JSON line
+                        yield json.dumps({"response": text}) + "\n"
+                memory.chat_memory.add_ai_message(final_response)
 
-            memory.chat_memory.add_ai_message(final_response)
-        return StreamingResponse(stream_response(chain=rag_chain,user_input=user_input), media_type="application/jsonlines")
+            return StreamingResponse(stream_response_groq(chain=chain,user_input=user_input), media_type="application/jsonlines")
         
     
     except Exception as e:

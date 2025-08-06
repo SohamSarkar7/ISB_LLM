@@ -2,7 +2,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from pymongo import MongoClient
 import datetime
 
-mongo_uri = "mongodb://localhost:27017"
+mongo_uri = "mongodb+srv://sarkarsoham2002:1234@isbllm.ay4fqha.mongodb.net/?retryWrites=true&w=majority&appName=ISBLLM"
 client = MongoClient(mongo_uri)
 collection = client["llm_sessions"]["chat_history"]
 
