@@ -18,7 +18,7 @@ import os
 import shutil
 from fastapi import FastAPI, UploadFile, File
 from routes.rag import process_pdf_and_store_in_pinecone , Retrival_chain_rag , groq_retrival_chain
-from utils import check_session_limit , get_llm_choice ,can_process_immediately , remove_user
+from utils import check_session_limit , get_llm_choice
 from dotenv import load_dotenv
 load_dotenv()
 # Start daily memory flush
@@ -92,11 +92,11 @@ async def llm_response(
     Stream LLM response using LangChain, MongoDB memory, and FastAPI.
     """
 
-    if not can_process_immediately():
-        return JSONResponse(
-            content={"response": "⚠️ Too many users right now. Please wait..."},
-            status_code=429
-        )
+    # if not can_process_immediately():
+    #     return JSONResponse(
+    #         content={"response": "⚠️ Too many users right now. Please wait..."},
+    #         status_code=429
+    #     )
     
     try:
         user_input = request.user_input
@@ -161,5 +161,5 @@ async def llm_response(
         raise HTTPException(status_code=500, detail=str(e))
     
 
-    finally:
-        remove_user()
+    # finally:
+    #     remove_user()

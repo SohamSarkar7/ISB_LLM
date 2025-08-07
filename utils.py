@@ -2,11 +2,11 @@ import json
 from langchain_core.runnables import RunnableSequence
 from datetime import datetime
 from pymongo import MongoClient
-import redis
+# import redis
 
 
-MAX_CONCURRENT_USERS = 500
-redis_client = redis.StrictRedis(host='localhost', port=6379, db=0)
+# MAX_CONCURRENT_USERS = 500
+# redis_client = redis.StrictRedis(host='localhost', port=6637, db=0)
 
 mongo_uri = "mongodb+srv://sarkarsoham2002:1234@isbllm.ay4fqha.mongodb.net/?retryWrites=true&w=majority&appName=ISBLLM"
 client = MongoClient(mongo_uri)
@@ -73,17 +73,17 @@ def check_session_limit(session_id: str) -> bool:
         })
         return True
 
-def can_process_immediately() -> bool:
-    active_users = redis_client.get("active_users")
-    if not active_users:
-        redis_client.set("active_users", 1)
-        return True
-    elif int(active_users) < MAX_CONCURRENT_USERS:
-        redis_client.incr("active_users")
-        return True
-    else:
-        return False
+# def can_process_immediately() -> bool:
+#     active_users = redis_client.get("active_users")
+#     if not active_users:
+#         redis_client.set("active_users", 1)
+#         return True
+#     elif int(active_users) < MAX_CONCURRENT_USERS:
+#         redis_client.incr("active_users")
+#         return True
+#     else:
+#         return False
 
-def remove_user():
-    redis_client.decr("active_users")
+# def remove_user():
+#     redis_client.decr("active_users")
                 
