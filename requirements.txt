@@ -28,3 +28,4 @@ reportlab
 streamlit
 langchain_huggingface
 langchain-groq
+redis
