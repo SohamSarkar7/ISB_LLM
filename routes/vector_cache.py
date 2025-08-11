@@ -41,8 +41,8 @@ class VectorCache:
             logging.info("Cache empty : calling LLM")
             return None
 
-        D, I = self.index.search(query_np, k=1)
-        best_idx = I[0][0]
+        D, idx = self.index.search(query_np, k=1)
+        best_idx = idx[0][0]
         best_dist = D[0][0]
 
         # Convert L2 distance to similarity (approximation)
