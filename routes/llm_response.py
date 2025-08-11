@@ -1,22 +1,18 @@
 from fastapi import APIRouter, HTTPException, Header
 from fastapi.responses import StreamingResponse
-from langchain_ollama.chat_models import ChatOllama
 from langchain.memory import ConversationBufferMemory
 from langchain_core.runnables import RunnableSequence
-from fastapi.responses import StreamingResponse
 from pymongo import MongoClient
 from routes.mongo_class import GroupedMongoChatHistory
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from loggers import logging
 import json
-from datetime import datetime
 import os
 import shutil
-from fastapi import FastAPI, UploadFile, File
+from fastapi import UploadFile, File
 from routes.rag import process_pdf_and_store_in_pinecone , Retrival_chain_rag , groq_retrival_chain
 from utils import check_session_limit , get_llm_choice
-from routes.chat_prompt import get_prompt_template, llm_model
 from routes.schedular import start_scheduler
 from routes.vector_cache import VectorCache
 from routes.agent import youtube_to_PDF
