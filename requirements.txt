@@ -28,4 +28,7 @@ reportlab
 streamlit
 langchain_huggingface
 langchain-groq
+youtube-transcript-api
+langchain_google_genai
 redis
+faiss-cpu

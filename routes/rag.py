@@ -102,7 +102,7 @@ def groq_retrival_chain():
     logging.info("Prompt template is added")
 
     combine_docs_chain = create_stuff_documents_chain(llm=llm,prompt=prompt)
-    logging.info("Created document combination chain with LLM and prompt template")
+    logging.info("Created document combination chain with groq llm and prompt template")
 
     retrieval_chain = create_retrieval_chain(retriever, combine_docs_chain)
     logging.info("Created retrieval chain with retriever and document combination chain")

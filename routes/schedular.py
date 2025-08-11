@@ -12,5 +12,6 @@ def clear_all_sessions():
 
 def start_scheduler():
     scheduler = BackgroundScheduler()
-    scheduler.add_job(clear_all_sessions, trigger='cron', hour=0, minute=0)  
+    scheduler.add_job(clear_all_sessions, trigger='cron', hour=0, minute=0)
+
     scheduler.start()
