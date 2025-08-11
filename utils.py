@@ -2,13 +2,18 @@ import json
 from langchain_core.runnables import RunnableSequence
 from datetime import datetime
 from pymongo import MongoClient
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
 # import redis
 
 
 # MAX_CONCURRENT_USERS = 500
 # redis_client = redis.StrictRedis(host='localhost', port=6637, db=0)
 
-mongo_uri = "mongodb+srv://sarkarsoham2002:1234@isbllm.ay4fqha.mongodb.net/?retryWrites=true&w=majority&appName=ISBLLM"
+mongo_uri = os.getenv("MONGO_URI")
 client = MongoClient(mongo_uri)
 MAX_DAILY_CALLS = 14400
 usage_collection = client["llm_sessions"]["usage_counter"]
@@ -83,7 +88,6 @@ def check_session_limit(session_id: str) -> bool:
 #         return True
 #     else:
 #         return False
-
 # def remove_user():
 #     redis_client.decr("active_users")
                 

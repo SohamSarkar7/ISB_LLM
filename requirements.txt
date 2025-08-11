@@ -9,6 +9,7 @@ fastapi
 uvicorn
 langchain-ollama
 pymongo
+motor
 apscheduler
 ipykernel
 crewai
@@ -32,3 +33,4 @@ youtube-transcript-api
 langchain_google_genai
 redis
 faiss-cpu
+gunicorn

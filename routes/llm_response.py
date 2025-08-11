@@ -32,7 +32,7 @@ router = APIRouter(
     tags=["LLM Service"]  
 )
 
-mongo_uri = "mongodb+srv://sarkarsoham2002:1234@isbllm.ay4fqha.mongodb.net/?retryWrites=true&w=majority&appName=ISBLLM"
+mongo_uri = os.getenv("MONGO_URI")
 client = MongoClient(mongo_uri)
 logging.info("Connected to MongoDB at %s", mongo_uri)
 
@@ -81,6 +81,7 @@ async def youtube_video_link(request: YouTubeLinkRequest):
     try:
         pdf_path = youtube_to_PDF(request.url)
         result = process_pdf_and_store_in_pinecone(pdf_path)
+        logging.info("Youtube embedded successfully")
         return JSONResponse(content=result)
     except Exception as e:
         logging.error(f"Error processing YouTube link: {e}")
@@ -109,11 +110,19 @@ async def llm_response(
 
         cached_answer = vector_cache.search_cache(user_input)
         if cached_answer:
-            return JSONResponse(content={"response": cached_answer, "cached": True})
+            logging.info(f"Cache HIT — returning from cache for session={session_id}")
+            return JSONResponse(
+                content={
+                    "response": cached_answer,
+                    "cached": True,
+                    "source": "vector_cache"
+                },
+                status_code=200
+            )
 
         if not check_session_limit(session_id):
             return JSONResponse(
-                content={"response": "❗ You’ve reached your 10 chats for today.\nCome back tomorrow to ask more questions."},
+                content={"response": "You’ve reached your 15 chats for today.\nCome back tomorrow to ask more questions."},
                 status_code=200
             )
 

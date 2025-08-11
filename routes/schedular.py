@@ -1,8 +1,12 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from pymongo import MongoClient
 import datetime
+from dotenv import load_dotenv
+import os
 
-mongo_uri = "mongodb+srv://sarkarsoham2002:1234@isbllm.ay4fqha.mongodb.net/?retryWrites=true&w=majority&appName=ISBLLM"
+load_dotenv()
+
+mongo_uri = os.getenv("MONGO_URI")
 client = MongoClient(mongo_uri)
 collection = client["llm_sessions"]["chat_history"]
 
@@ -13,5 +17,4 @@ def clear_all_sessions():
 def start_scheduler():
     scheduler = BackgroundScheduler()
     scheduler.add_job(clear_all_sessions, trigger='cron', hour=0, minute=0)
-
     scheduler.start()
