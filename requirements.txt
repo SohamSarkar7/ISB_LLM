@@ -34,3 +34,4 @@ langchain_google_genai
 redis
 faiss-cpu
 gunicorn
+asyncio

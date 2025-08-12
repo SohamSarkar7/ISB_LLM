@@ -14,7 +14,7 @@ class VectorCache:
         self.embeddings = HuggingFaceEmbeddings(
             model_name="sentence-transformers/all-MiniLM-L6-v2"
         )
-        self.dim = 384  # embedding dimension
+        self.dim = 384  
         self.index = faiss.IndexFlatL2(self.dim)
         self.id_map = {}
 
