@@ -1,6 +1,7 @@
 from langchain.prompts import ChatPromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
+from langchain_ollama import ChatOllama
 import os
 from dotenv import load_dotenv
 load_dotenv()
@@ -72,10 +73,10 @@ def llm_model():
 
 
 def groq_llm():
-    llm = ChatGroq(api_key=GROQ_API, model="llama3-8b-8192",streaming=True,temperature=0.2,max_tokens=1000)
+    llm = ChatGroq(api_key=GROQ_API, model="llama-3.1-8b-instant",streaming=True,temperature=0.2,max_tokens=1000)
     return llm
     
+def ChatOllama_llm():
+    llm = ChatOllama(model="gemma3:1b",temperature=0.2,max_tokens=600,streaming=True)
+    return llm
 
-
-
-    

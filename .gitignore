@@ -7,3 +7,5 @@ uploaded_files
 logs
 *.log
 Data
+ISB_Video
+Fine_tune_LLM

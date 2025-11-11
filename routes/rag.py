@@ -5,7 +5,7 @@ from pinecone import Pinecone
 from langchain_pinecone import PineconeVectorStore
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chains.retrieval import create_retrieval_chain
-from routes.chat_prompt import get_prompt_template, llm_model , groq_llm, groq_prompt_template
+from routes.chat_prompt import get_prompt_template, llm_model , groq_llm, groq_prompt_template ,ChatOllama_llm
 from langchain.schema import Document
 from dotenv import load_dotenv
 from loggers import logging
@@ -19,7 +19,7 @@ index = pc.Index("isb-proj")
 logging.info("Connected to Pinecone index: isb-proj")
 
 
-embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
 logging.info("Initialized HuggingFace embeddings with model: sentence-transformers/all-MiniLM-L6-v2")
 vector_store = PineconeVectorStore(index=index, embedding=embeddings)
@@ -110,3 +110,25 @@ def groq_retrival_chain():
     return retrieval_chain
 
 
+
+def ollama_retrival_chain():
+    
+    retriever = vector_store.as_retriever(
+    search_type="similarity",
+    search_kwargs={"k": 3,"score_threshold": 0.7}
+    )
+    logging.info("Created retriever from Pinecone vector store")
+
+    llm = ChatOllama_llm()
+    logging.info("LLM Added")
+
+    prompt = groq_prompt_template()
+    logging.info("Prompt template is added")
+
+    combine_docs_chain = create_stuff_documents_chain(llm=llm,prompt=prompt)
+    logging.info("Created document combination chain with groq llm and prompt template")
+
+    retrieval_chain = create_retrieval_chain(retriever, combine_docs_chain)
+    logging.info("Created retrieval chain with retriever and document combination chain")
+
+    return retrieval_chain

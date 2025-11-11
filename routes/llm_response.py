@@ -12,7 +12,7 @@ import os
 import asyncio
 import shutil
 from fastapi import UploadFile, File
-from routes.rag import process_pdf_and_store_in_pinecone , Retrival_chain_rag , groq_retrival_chain
+from routes.rag import process_pdf_and_store_in_pinecone , Retrival_chain_rag ,ollama_retrival_chain ,groq_retrival_chain 
 from utils import check_session_limit , get_llm_choice
 from routes.schedular import start_scheduler
 from routes.vector_cache import VectorCache
@@ -44,8 +44,8 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 
 # Queue
-MAX_CONCURRENT_USERS = 3          # max parallel processing
-MAX_QUEUE_SIZE = 20               # max waiting users
+MAX_CONCURRENT_USERS = 10          # max parallel processing
+MAX_QUEUE_SIZE = 100               # max waiting users
 request_queue = asyncio.Queue(maxsize=MAX_QUEUE_SIZE)
 semaphore = asyncio.Semaphore(MAX_CONCURRENT_USERS)
 
@@ -129,6 +129,22 @@ async def process_llm_request(request: LLMRequest, session_id: str):
     final_response = ""
 
     if llm_choice == "primary":
+
+        # prompt, llm = vllm_Retrival_chain_rag(user_input=user_input)
+
+        # def stream_response(prompt, llm):
+        #     nonlocal final_response
+        #     for chunk in llm.stream(prompt):
+        #         chunk_text = chunk.content
+        #         final_response += chunk_text
+        #         yield json.dumps({"response": chunk_text}) + "\n"
+        #     memory.chat_memory.add_ai_message(final_response)
+        #     vector_cache.add_to_cache(session_id, user_input, final_response)
+
+        # return StreamingResponse(
+        #     stream_response(prompt=prompt, llm=llm),
+        #     media_type="application/jsonlines"
+        # )
         chain = groq_retrival_chain()
 
         def stream_response_groq(chain: RunnableSequence, user_input: str):
@@ -232,5 +248,3 @@ async def llm_response(
 
     # Wait until it's processed
     return await fut
-
-    

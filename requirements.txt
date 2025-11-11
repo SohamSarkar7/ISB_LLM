@@ -31,7 +31,15 @@ langchain_huggingface
 langchain-groq
 youtube-transcript-api
 langchain_google_genai
+transformers
 redis
 faiss-cpu
 gunicorn
 asyncio
+matplotlib
+seaborn
+bitsandbytes
+torch 
+accelerate
+sentence-transformers
+huggingface_hub[hf_xet]
